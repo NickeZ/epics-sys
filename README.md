@@ -43,7 +43,7 @@ USR_CPPFLAGS = -I${EPICS_BASE}/include/compiler/clang
 
 ### Create build.rs script
 
-```
+```rust
 extern crate bindgen;
 
 use std::env;
@@ -101,7 +101,7 @@ fn main() {
 
 ### Add the following to the top of your `lib.rs` file.
 
-```
+```rust
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
@@ -113,7 +113,7 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 Add the following to your `lib.rs` file.
 
-```
+```rust
 #[macro_use]
 extern crate epics_sys;
 
