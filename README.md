@@ -1,5 +1,7 @@
 # Simplify rust usage in EPICS
 
+The full example can be found on [rust-in-epics](https://github.com/nickez/rust-in-epics)
+
 ## Step 0: Initialize project
 
 ### Create new crate
