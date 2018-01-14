@@ -32,15 +32,15 @@ macro_rules! epics_register_function {
 // AsRef is not implemneted on [i8, 61]
 pub fn str_from_epics(input: &[i8]) -> Result<&str, Utf8Error>
 {
-    let ptr = input.as_ptr();
-    let tmp = unsafe {CStr::from_ptr(ptr)};
-    tmp.to_str()
+    unsafe {CStr::from_ptr(input.as_ptr())}.to_str()
 }
 
 #[cfg(test)]
 mod tests {
+    use ::str_from_epics;
     #[test]
     fn it_works() {
-        assert_eq!(2 + 2, 4);
+        let x : [i8; 6] = ['h' as i8, 'e' as i8, 'l' as i8, 'l' as i8, 'o' as i8, '\0' as i8];
+        assert_eq!(str_from_epics(&x).unwrap(), "hello");
     }
 }
