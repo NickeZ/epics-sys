@@ -1,0 +1,6 @@
+[package]
+name = "epics-sys"
+version = "0.1.0"
+authors = ["Niklas Claesson <nicke.claesson@gmail.com>"]
+
+[dependencies]
