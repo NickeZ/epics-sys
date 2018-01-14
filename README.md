@@ -18,7 +18,7 @@ cargo new
 crate-type = ["dylib", "staticlib"]
 
 [dependencies]
-epics-sys = "0.1"
+epics-sys = "0.0.1"
 
 [build-dependencies]
 bindgen = "0.32.1"
