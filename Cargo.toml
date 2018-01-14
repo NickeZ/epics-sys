@@ -6,3 +6,4 @@ description = "Simplify rust usage in EPICS"
 license = "MIT"
 
 [dependencies]
+interpolate_idents = "*"

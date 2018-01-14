@@ -1,21 +1,25 @@
+#![feature(plugin)]
+#![plugin(interpolate_idents)]
+
 use std::ffi::CStr;
 use std::str::Utf8Error;
 
 // Cannot create function names until concat_idents!() is fixed
 // https://github.com/rust-lang/rust/issues/29599
+// Depends on nightly
 #[macro_export]
 macro_rules! epics_register_function {
-    ( $func:ident, $func_priv:ident, $type:ty, $regfunc:ident, $pvarregfunc:ident ) => {
+    ( $func:ident, $type:ty ) => ( interpolate_idents!{
         #[no_mangle]
         pub extern "C" fn $func(precord: *mut $type) -> ::std::os::raw::c_long {
-            match $func_priv(unsafe {&mut *precord}) {
+            match [$func _priv](unsafe {&mut *precord}) {
                 Ok(()) => 0,
                 Err(()) => 1,
             }
         }
 
         #[no_mangle]
-        pub fn $regfunc() {
+        pub fn [register_func_ $func]() {
             unsafe {
                 registryFunctionAdd(
                     "$func\0".as_ptr() as *const _,
@@ -24,10 +28,11 @@ macro_rules! epics_register_function {
         }
 
         #[no_mangle]
-        pub static mut $pvarregfunc: *const ::std::os::raw::c_void = $regfunc as *const ::std::os::raw::c_void;
+        pub static mut [pvar_func_register_func_ $func]: *const ::std::os::raw::c_void = [register_func_ $func] as *const ::std::os::raw::c_void;
 
-    };
+    } )
 }
+
 
 // AsRef is not implemneted on [i8, 61]
 pub fn str_from_epics(input: &[i8]) -> Result<&str, Utf8Error>
