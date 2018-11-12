@@ -2,10 +2,8 @@
 #![feature(concat_idents)]
 #![recursion_limit = "128"]
 
-extern crate paste;
+// Rust std crate must be imported like this
 extern crate proc_macro;
-extern crate quote;
-extern crate syn;
 
 use quote::quote;
 use syn::spanned::Spanned;
