@@ -10,6 +10,7 @@ extern crate quote;
 extern crate paste;
 
 use quote::quote;
+use syn::spanned::Spanned;
 
 
 #[proc_macro_attribute]
@@ -23,22 +24,44 @@ fn impl_epics_register(ast: &syn::ItemFn) -> proc_macro2::TokenStream {
     let name = &ast.ident;
     let name_str = name.to_string();
     if ! name_str.ends_with("_impl") {
-        return syn::parse::Error::new(name.span(), "Expected name to end with `_impl`").to_compile_error();
+        return syn::parse::Error::new(name.span(), "expected name to end with `_impl`").to_compile_error();
     }
     let name2 = syn::Ident::new(name_str.trim_end_matches(&"_impl"), name.span());
-    println!("{}", name2);
+
+    if ast.decl.inputs.len() != 1 {
+        return syn::parse::Error::new(
+            ast.decl.paren_token.span,
+            "expected function to have 1 argument"
+        ).to_compile_error();
+
+    }
     let rec_type = &ast.decl.inputs.first().unwrap().into_value();
     let rec_type = match rec_type {
         syn::FnArg::Captured(arg) => Some(&arg.ty),
-        _ => None,
+        _ => {
+            return syn::parse::Error::new(
+                rec_type.span(),
+                "unknown argument"
+            ).to_compile_error();
+        },
     }.unwrap();
     let rec_type = match rec_type {
         syn::Type::Reference(ty) => Some(ty.elem.as_ref()),
-        _ => None,
+        _ => {
+            return syn::parse::Error::new(
+                rec_type.span(),
+                "expected reference"
+            ).to_compile_error();
+        },
     }.unwrap();
     let rec_type = match rec_type {
         syn::Type::Path(ty) => Some(ty),
-        _ => None,
+        _ => {
+            return syn::parse::Error::new(
+                rec_type.span(),
+                "expected path/type"
+            ).to_compile_error();
+        },
     }.unwrap();
     //println!("{:#?}", rec_type);
 
