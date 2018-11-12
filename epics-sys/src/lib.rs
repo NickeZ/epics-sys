@@ -1,8 +1,6 @@
 #![feature(extern_crate_item_prelude)]
 #![feature(concat_idents)]
 #![recursion_limit="128"]
-// use std::ffi::CStr;
-// use std::str::Utf8Error;
 
 extern crate proc_macro;
 extern crate syn;
@@ -96,19 +94,3 @@ fn impl_epics_register(ast: &syn::ItemFn) -> proc_macro2::TokenStream {
     };
     gen.into()
 }
-
-// AsRef is not implemneted on [i8, 61]
-//pub fn str_from_epics(input: &[i8]) -> Result<&str, Utf8Error>
-//{
-//    unsafe {CStr::from_ptr(input.as_ptr())}.to_str()
-//}
-//
-//#[cfg(test)]
-//mod tests {
-//    use ::str_from_epics;
-//    #[test]
-//    fn it_works() {
-//        let x : [i8; 6] = ['h' as i8, 'e' as i8, 'l' as i8, 'l' as i8, 'o' as i8, '\0' as i8];
-//        assert_eq!(str_from_epics(&x).unwrap(), "hello");
-//    }
-//}

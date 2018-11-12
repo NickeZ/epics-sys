@@ -14,6 +14,9 @@ cargo new
 ### Update Cargo.toml
 
 ```
+[package]
+edition = "2018"
+
 [lib]
 crate-type = ["dylib", "staticlib"]
 
@@ -43,6 +46,13 @@ If `compilerSpecific.h` is missing you might want to add the following line into
 USR_CPPFLAGS = -I${EPICS_BASE}/include/compiler/clang
 ```
 
+Rebuild epics with clang:
+
+```
+make clean uninstall
+make -j
+```
+
 ### Create build.rs script
 
 ```rust
@@ -53,7 +63,7 @@ use std::path::PathBuf;
 use std::string::String;
 
 fn main() {
-    let epics_base = PathBuf::from(env::var("EPICS_BASE").unwrap_or("/home/niklas/git/epics-base".into()));
+    let epics_base = PathBuf::from(env::var("EPICS_BASE").unwrap_or("/usr/local/epics/base".into()));
 
     let mut epics_include = epics_base.clone();
     epics_include.push("include");
@@ -113,31 +123,36 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 ## Step 2: Create subRecord function and register it with EPICS
 
-Add the following to your `lib.rs` file.
+Add the following to your `lib.rs` file. The suffix of the function name must be
+`_impl`.
+
+To read C strings in rust you need to use unsafe since there are no guarantees.
 
 ```rust
-#[macro_use]
 extern crate epics_sys;
 
-use epics_sys::str_from_epics;
+// Bring in epics_register attribute
+use epics_sys::epics_register;
 
-epics_register_function!(
-    mySubProcess,
-    mySubProcess_priv,
-    subRecord,
-    register_func_mySubProcess,
-    pvar_func_register_func_mySubProcess
-);
-
-fn mySubProcess_priv(record: &mut subRecord) -> Result<(), ()> {
-    match str_from_epics(record.name.as_ref()) {
+#[epics_register]
+pub fn mySubProcess_impl(record: &mut subRecord) -> Result<(), ()> {
+    match try_convert(&record.name) {
         Ok(name) => println!("Hello from rust! name={:?}", name),
         _ => println!("Invalid UTF8 in name"),
     }
     println!("A={:.2}", record.a);
     record.val = quad(record.a);
+
+    // Return Ok or Err
     Ok(())
 
+}
+
+fn try_convert(input: &[i8]) -> Result<&str, Utf8Error> {
+    if ! input.contains('\0') {
+        return Err(MissingNull);
+    }
+    unsafe {CStr::from_ptr(input as const c_char*)}.to_str()
 }
 ```
 
