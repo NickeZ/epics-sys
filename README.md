@@ -129,15 +129,13 @@ Add the following to your `lib.rs` file. The suffix of the function name must be
 To read C strings in rust you need to use unsafe since there are no guarantees.
 
 ```rust
-extern crate epics_sys;
-
 // Bring in epics_register attribute
 use epics_sys::epics_register;
 
 #[epics_register]
 pub fn mySubProcess_impl(record: &mut subRecord) -> Result<(), ()> {
-    match try_convert(&record.name) {
-        Ok(name) => println!("Hello from rust! name={:?}", name),
+    match try_from(&record.name) {
+        Ok(name) => println!("Hello from rust! name={}", name),
         _ => println!("Invalid UTF8 in name"),
     }
     println!("A={:.2}", record.a);
@@ -145,14 +143,26 @@ pub fn mySubProcess_impl(record: &mut subRecord) -> Result<(), ()> {
 
     // Return Ok or Err
     Ok(())
-
 }
 
-fn try_convert(input: &[i8]) -> Result<&str, Utf8Error> {
-    if ! input.contains('\0') {
-        return Err(MissingNull);
+fn quad(n: f64) -> f64 {
+    (n as f64)*(n as f64)
+}
+
+use std::ffi::CStr;
+use std::str::Utf8Error;
+
+#[derive(Debug)]
+enum Error {
+    Utf8Error(Utf8Error),
+    NoNullCharacter,
+}
+
+fn try_from(input: &[i8]) -> Result<&str, Error> {
+    if ! input.contains(&0i8) {
+        return Err(Error::NoNullCharacter);
     }
-    unsafe {CStr::from_ptr(input as const c_char*)}.to_str()
+    unsafe {CStr::from_ptr(input.as_ptr())}.to_str().map_err(|e| Error::Utf8Error(e))
 }
 ```
 
@@ -165,7 +175,10 @@ Modify `Makefile` to link to crate. In this example I've put the rust crate in t
 <APPName>_SYS_LIBS += dl
 <APPName>_LIBS += <crate-name>
 
-<crate-name>_DIR = ${TOP}/<APPName>/src/<crate-name>/target/debug
+<crate-name>_DIR = ${TOP}/<APPName>/src/<crate-name>/target/release
+
+$(<crate-name>_DIR)/lib<crate-name>.so $(<crate-name>_DIR)/lib<crate-name>.a: ${TOP}/<APPName>/src/<crate-name>/src/lib.rs
+	cargo build --release --manifest-path ${TOP}/<APPName>/src/<crate-name>/Cargo.toml
 ```
 
 Add dbd file with content:
