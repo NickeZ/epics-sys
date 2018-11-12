@@ -1,8 +1,5 @@
-[package]
-name = "epics-sys"
-version = "0.0.1"
-authors = ["Niklas Claesson <nicke.claesson@gmail.com>"]
-description = "Simplify rust usage in EPICS"
-license = "MIT"
-
-[dependencies]
+[workspace]
+members = [
+        "epics-sys",
+        "my-example",
+]

@@ -1,0 +1,15 @@
+[package]
+name = "my-example"
+version = "0.1.0"
+authors = ["Niklas Claesson <nicke.claesson@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+epics-sys = { path="../epics-sys" }
+paste = "0.1"
+
+[build-dependencies]
+bindgen = "0.43"
