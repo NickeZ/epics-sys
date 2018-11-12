@@ -14,3 +14,4 @@ syn = {version="0.15", features=["full", "extra-traits"]}
 # syn = "0.15"
 quote = "0.6"
 paste = "0.1"
+proc-macro2 = "0.4"

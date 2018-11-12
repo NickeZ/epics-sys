@@ -9,19 +9,24 @@ extern crate syn;
 extern crate quote;
 extern crate paste;
 
-use proc_macro::TokenStream;
 use quote::quote;
 
 
 #[proc_macro_attribute]
-pub fn epics_register(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn epics_register(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = syn::parse(item).unwrap();
 
-    impl_epics_register(&ast)
+    impl_epics_register(&ast).into()
 }
 
-fn impl_epics_register(ast: &syn::ItemFn) -> TokenStream {
+fn impl_epics_register(ast: &syn::ItemFn) -> proc_macro2::TokenStream {
     let name = &ast.ident;
+    let name_str = name.to_string();
+    if ! name_str.ends_with("_impl") {
+        return syn::parse::Error::new(name.span(), "Expected name to end with `_impl`").to_compile_error();
+    }
+    let name2 = syn::Ident::new(name_str.trim_end_matches(&"_impl"), name.span());
+    println!("{}", name2);
     let rec_type = &ast.decl.inputs.first().unwrap().into_value();
     let rec_type = match rec_type {
         syn::FnArg::Captured(arg) => Some(&arg.ty),
@@ -41,7 +46,7 @@ fn impl_epics_register(ast: &syn::ItemFn) -> TokenStream {
         use std::os::raw::{c_long, c_void};
         paste::item! {
             #[no_mangle]
-            pub extern "C" fn [<#name _priv>](precord: *mut #rec_type) -> c_long {
+            pub extern "C" fn #name2(precord: *mut #rec_type) -> c_long {
                 match #name(unsafe {&mut *precord}) {
                     Ok(()) => 0,
                     Err(()) => 1,
@@ -49,18 +54,18 @@ fn impl_epics_register(ast: &syn::ItemFn) -> TokenStream {
             }
 
             #[no_mangle]
-            pub fn [<register_func_ #name _priv>]() {
+            pub fn [<register_func_ #name2>]() {
                 use std::mem;
-                let fnname = format!("{}_priv\0", stringify!(#name));
+                let fnname = format!("{}\0", stringify!(#name2));
                 unsafe {
                     registryFunctionAdd(
                         fnname.as_ptr() as *const _,
-                        Some(mem::transmute::<extern "C" fn(*mut #rec_type) -> c_long, unsafe extern "C" fn()>([<#name _priv>])));
+                        Some(mem::transmute::<extern "C" fn(*mut #rec_type) -> c_long, unsafe extern "C" fn()>(#name2)));
                 }
             }
 
             #[no_mangle]
-            pub static mut [<pvar_func_register_func_ #name _priv>]: *const c_void = [<register_func_ #name _priv>] as *const c_void;
+            pub static mut [<pvar_func_register_func_ #name2>]: *const c_void = [<register_func_ #name2>] as *const c_void;
 
         }
 
@@ -68,35 +73,6 @@ fn impl_epics_register(ast: &syn::ItemFn) -> TokenStream {
     };
     gen.into()
 }
-
-//
-// Cannot create function names until concat_idents!() is fixed
-// https://github.com/rust-lang/rust/issues/29599
-//#[macro_export]
-//macro_rules! epics_register_function {
-//    ( $func:ident, $func_priv:ident, $type:ty, $regfunc:ident, $pvarregfunc:ident ) => {
-//        #[no_mangle]
-//        pub extern "C" fn $func(precord: *mut $type) -> ::std::os::raw::c_long {
-//            match $func_priv(unsafe {&mut *precord}) {
-//                Ok(()) => 0,
-//                Err(()) => 1,
-//            }
-//        }
-//
-//        #[no_mangle]
-//        pub fn $regfunc() {
-//            unsafe {
-//                registryFunctionAdd(
-//                    "$func\0".as_ptr() as *const _,
-//                    Some(::std::mem::transmute::<extern "C" fn(*mut $type) -> ::std::os::raw::c_long, unsafe extern "C" fn()>($func)));
-//            }
-//        }
-//
-//        #[no_mangle]
-//        pub static mut $pvarregfunc: *const ::std::os::raw::c_void = $regfunc as *const ::std::os::raw::c_void;
-//
-//    };
-//}
 
 // AsRef is not implemneted on [i8, 61]
 //pub fn str_from_epics(input: &[i8]) -> Result<&str, Utf8Error>
