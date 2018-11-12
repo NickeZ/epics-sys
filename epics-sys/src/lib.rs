@@ -59,10 +59,9 @@ fn impl_epics_register(ast: &syn::ItemFn) -> proc_macro2::TokenStream {
     //println!("{:#?}", rec_type);
 
     let gen = quote! {
-        use std::os::raw::{c_long, c_void};
         paste::item! {
             #[no_mangle]
-            pub extern "C" fn #name2(precord: *mut #rec_type) -> c_long {
+            pub extern "C" fn #name2(precord: *mut #rec_type) -> ::std::os::raw::c_long {
                 match #name(unsafe {&mut *precord}) {
                     Ok(()) => 0,
                     Err(()) => 1,
@@ -76,12 +75,12 @@ fn impl_epics_register(ast: &syn::ItemFn) -> proc_macro2::TokenStream {
                 unsafe {
                     registryFunctionAdd(
                         fnname.as_ptr() as *const _,
-                        Some(mem::transmute::<extern "C" fn(*mut #rec_type) -> c_long, unsafe extern "C" fn()>(#name2)));
+                        Some(mem::transmute::<extern "C" fn(*mut #rec_type) -> ::std::os::raw::c_long, unsafe extern "C" fn()>(#name2)));
                 }
             }
 
             #[no_mangle]
-            pub static mut [<pvar_func_register_func_ #name2>]: *const c_void = [<register_func_ #name2>] as *const c_void;
+            pub static mut [<pvar_func_register_func_ #name2>]: *const ::std::os::raw::c_void = [<register_func_ #name2>] as *const ::std::os::raw::c_void;
 
         }
 
