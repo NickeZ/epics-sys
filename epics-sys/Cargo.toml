@@ -1,6 +1,6 @@
 [package]
 name = "epics-sys"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Niklas Claesson <nicke.claesson@gmail.com>"]
 description = "Simplify rust usage in EPICS"
 license = "MIT"
