@@ -25,7 +25,12 @@ fn impl_epics_register(ast: &syn::ItemFn) -> proc_macro2::TokenStream {
         return syn::parse::Error::new(name.span(), "expected name to end with `_impl`")
             .to_compile_error();
     }
-    let name2 = syn::Ident::new(name_str.trim_end_matches(&"_impl"), name.span());
+    let name_export = name_str.trim_end_matches(&"_impl");
+    let name_ident = syn::Ident::new(name_export, name.span());
+    let pvar_name = String::from("pvar_func_register_func_") + &name_export;
+    let pvar_ident = syn::Ident::new(&pvar_name, name.span());
+    let reg_func_name = String::from("register_func_") + &name_export;
+    let reg_func_ident = syn::Ident::new(&reg_func_name, name.span());
 
     if ast.decl.inputs.len() != 1 {
         return syn::parse::Error::new(
@@ -59,30 +64,32 @@ fn impl_epics_register(ast: &syn::ItemFn) -> proc_macro2::TokenStream {
     //println!("{:#?}", rec_type);
 
     let gen = quote! {
-        paste::item! {
-            #[no_mangle]
-            pub extern "C" fn #name2(precord: *mut #rec_type) -> ::std::os::raw::c_long {
-                match #name(unsafe {&mut *precord}) {
-                    Ok(()) => 0,
-                    Err(()) => 1,
-                }
+        #[no_mangle]
+        pub extern "C" fn #name_ident(precord: *mut #rec_type)
+                -> ::std::os::raw::c_long {
+            match #name(unsafe {&mut *precord}) {
+                Ok(()) => 0,
+                Err(()) => 1,
             }
-
-            #[no_mangle]
-            pub fn [<register_func_ #name2>]() {
-                use std::mem;
-                let fnname = format!("{}\0", stringify!(#name2));
-                unsafe {
-                    registryFunctionAdd(
-                        fnname.as_ptr() as *const _,
-                        Some(mem::transmute::<extern "C" fn(*mut #rec_type) -> ::std::os::raw::c_long, unsafe extern "C" fn()>(#name2)));
-                }
-            }
-
-            #[no_mangle]
-            pub static mut [<pvar_func_register_func_ #name2>]: *const ::std::os::raw::c_void = [<register_func_ #name2>] as *const ::std::os::raw::c_void;
-
         }
+
+        #[no_mangle]
+        pub fn #reg_func_ident() {
+            use std::mem;
+            let fnname = format!("{}\0", stringify!(#name_ident));
+            unsafe {
+                registryFunctionAdd(
+                    fnname.as_ptr() as *const _,
+                    Some(mem::transmute::<
+                        extern "C" fn(*mut #rec_type)
+                            -> ::std::os::raw::c_long, unsafe extern "C" fn()
+                    >(#name_ident)));
+            }
+        }
+
+        #[no_mangle]
+        pub static mut #pvar_ident: *const ::std::os::raw::c_void =
+            #reg_func_ident as *const ::std::os::raw::c_void;
 
         #ast
     };

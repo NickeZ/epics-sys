@@ -9,7 +9,6 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 epics-sys = { path="../epics-sys" }
-paste = "0.1"
 
 [build-dependencies]
 bindgen = "0.43"
